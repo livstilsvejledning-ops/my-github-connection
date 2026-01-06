@@ -16,6 +16,14 @@ import Messages from "./pages/Messages";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+// Client pages
+import ClientDashboard from "./pages/client/ClientDashboard";
+import ClientHabits from "./pages/client/ClientHabits";
+import ClientFoodLog from "./pages/client/ClientFoodLog";
+import ClientMealPlan from "./pages/client/ClientMealPlan";
+import ClientProgress from "./pages/client/ClientProgress";
+import ClientMessages from "./pages/client/ClientMessages";
+import ClientSettings from "./pages/client/ClientSettings";
 import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -43,6 +51,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* Admin routes */}
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/customers" element={<ProtectedRoute><Customers /></ProtectedRoute>} />
       <Route path="/customers/:customerId" element={<ProtectedRoute><CustomerDetail /></ProtectedRoute>} />
@@ -53,6 +62,14 @@ function AppRoutes() {
       <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
       <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      {/* Client routes */}
+      <Route path="/client" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
+      <Route path="/client/habits" element={<ProtectedRoute><ClientHabits /></ProtectedRoute>} />
+      <Route path="/client/food-log" element={<ProtectedRoute><ClientFoodLog /></ProtectedRoute>} />
+      <Route path="/client/meal-plan" element={<ProtectedRoute><ClientMealPlan /></ProtectedRoute>} />
+      <Route path="/client/progress" element={<ProtectedRoute><ClientProgress /></ProtectedRoute>} />
+      <Route path="/client/messages" element={<ProtectedRoute><ClientMessages /></ProtectedRoute>} />
+      <Route path="/client/settings" element={<ProtectedRoute><ClientSettings /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
