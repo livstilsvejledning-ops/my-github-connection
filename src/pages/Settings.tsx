@@ -3,24 +3,30 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
-import { User, Bell, Shield, Palette, Save, Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { AvatarUpload } from '@/components/shared/AvatarUpload';
+import { User, Bell, Shield, Palette, Save, Loader2, Mail, Phone, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 
 export default function Settings() {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     full_name: '',
     email: '',
     phone: '',
+    profile_image_url: null as string | null,
+  });
+  const [notifications, setNotifications] = useState({
+    email: true,
+    checkInReminders: true,
+    messageNotifications: true,
+    atRiskAlerts: true
   });
 
   useEffect(() => {
@@ -41,6 +47,7 @@ export default function Settings() {
         full_name: data.full_name || '',
         email: data.email || '',
         phone: data.phone || '',
+        profile_image_url: data.profile_image_url,
       });
     }
   };
@@ -56,32 +63,16 @@ export default function Settings() {
       .eq('id', user?.id);
 
     if (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Fejl',
-        description: 'Kunne ikke gemme ændringer',
-      });
+      toast.error('Kunne ikke gemme ændringer');
     } else {
-      toast({
-        title: 'Gemt!',
-        description: 'Dine ændringer er blevet gemt',
-      });
+      toast.success('Dine ændringer er blevet gemt');
     }
     setLoading(false);
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   return (
     <DashboardLayout>
-      <div className="space-y-6 animate-fade-in">
+      <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-foreground">Indstillinger</h1>
@@ -113,26 +104,34 @@ export default function Settings() {
           <TabsContent value="profile">
             <Card className="rounded-2xl border-border shadow-card">
               <CardHeader>
-                <CardTitle>Profil Information</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-primary" />
+                  Profil Information
+                </CardTitle>
                 <CardDescription>Opdater dine personlige oplysninger</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Avatar */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarFallback className="bg-primary text-primary-foreground text-xl">
-                      {getInitials(profile.full_name || 'U')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <Button variant="outline" className="rounded-xl">
-                      Skift billede
-                    </Button>
+                {/* Avatar with Upload */}
+                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
+                  {user && (
+                    <AvatarUpload
+                      userId={user.id}
+                      currentAvatarUrl={profile.profile_image_url}
+                      fullName={profile.full_name}
+                      onUploadComplete={() => fetchProfile()}
+                      size="lg"
+                    />
+                  )}
+                  <div className="flex-1 space-y-1 text-center sm:text-left">
+                    <h3 className="font-semibold text-lg">{profile.full_name || 'Dit navn'}</h3>
+                    <p className="text-sm text-muted-foreground">{profile.email}</p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      JPG, PNG eller GIF. Max 2MB.
+                      Klik på billedet for at uploade et nyt (max 5MB)
                     </p>
                   </div>
                 </div>
+
+                <Separator />
 
                 {/* Form */}
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -142,11 +141,14 @@ export default function Settings() {
                       id="fullName"
                       value={profile.full_name}
                       onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
-                      className="rounded-xl"
+                      className="rounded-xl bg-muted/50 border-transparent focus:border-primary"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      Email
+                    </Label>
                     <Input
                       id="email"
                       type="email"
@@ -155,13 +157,16 @@ export default function Settings() {
                       className="rounded-xl bg-muted"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefon</Label>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="phone" className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      Telefon
+                    </Label>
                     <Input
                       id="phone"
                       value={profile.phone}
                       onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                      className="rounded-xl"
+                      className="rounded-xl bg-muted/50 border-transparent focus:border-primary"
                       placeholder="+45 12 34 56 78"
                     />
                   </div>
@@ -190,29 +195,46 @@ export default function Settings() {
                 <CardTitle>Notifikationsindstillinger</CardTitle>
                 <CardDescription>Vælg hvordan du vil modtage notifikationer</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
-                    <div>
-                      <p className="font-medium">Email notifikationer</p>
-                      <p className="text-sm text-muted-foreground">Modtag emails om nye bookinger</p>
-                    </div>
-                    <Switch defaultChecked />
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
+                  <div>
+                    <p className="font-medium">Email notifikationer</p>
+                    <p className="text-sm text-muted-foreground">Modtag emails om nye bookinger</p>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
-                    <div>
-                      <p className="font-medium">Check-in påmindelser</p>
-                      <p className="text-sm text-muted-foreground">Påmind klienter om at check-in</p>
-                    </div>
-                    <Switch defaultChecked />
+                  <Switch 
+                    checked={notifications.email}
+                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, email: checked }))}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
+                  <div>
+                    <p className="font-medium">Check-in påmindelser</p>
+                    <p className="text-sm text-muted-foreground">Påmind klienter om at check-in</p>
                   </div>
-                  <div className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
-                    <div>
-                      <p className="font-medium">Besked notifikationer</p>
-                      <p className="text-sm text-muted-foreground">Notificer om nye beskeder</p>
-                    </div>
-                    <Switch defaultChecked />
+                  <Switch 
+                    checked={notifications.checkInReminders}
+                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, checkInReminders: checked }))}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
+                  <div>
+                    <p className="font-medium">Besked notifikationer</p>
+                    <p className="text-sm text-muted-foreground">Notificer om nye beskeder</p>
                   </div>
+                  <Switch 
+                    checked={notifications.messageNotifications}
+                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, messageNotifications: checked }))}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-xl bg-muted/30 p-4">
+                  <div>
+                    <p className="font-medium">At-risk kunde alerts</p>
+                    <p className="text-sm text-muted-foreground">Besked når kunder kræver opmærksomhed</p>
+                  </div>
+                  <Switch 
+                    checked={notifications.atRiskAlerts}
+                    onCheckedChange={(checked) => setNotifications(prev => ({ ...prev, atRiskAlerts: checked }))}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -229,18 +251,32 @@ export default function Settings() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Nuværende adgangskode</Label>
-                    <Input type="password" className="rounded-xl max-w-md" />
+                    <Input type="password" className="rounded-xl max-w-md bg-muted/50" />
                   </div>
                   <div className="space-y-2">
                     <Label>Ny adgangskode</Label>
-                    <Input type="password" className="rounded-xl max-w-md" />
+                    <Input type="password" className="rounded-xl max-w-md bg-muted/50" />
                   </div>
                   <div className="space-y-2">
                     <Label>Bekræft ny adgangskode</Label>
-                    <Input type="password" className="rounded-xl max-w-md" />
+                    <Input type="password" className="rounded-xl max-w-md bg-muted/50" />
                   </div>
                   <Button className="rounded-xl gradient-primary text-primary-foreground">
                     Opdater adgangskode
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="font-medium text-destructive mb-2">Farezone</h4>
+                  <Button 
+                    variant="destructive" 
+                    onClick={signOut}
+                    className="w-full sm:w-auto"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log ud af alle enheder
                   </Button>
                 </div>
               </CardContent>
