@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Navigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,12 +7,23 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UtensilsCrossed, Mail, Lock, User } from 'lucide-react';
+import { ResetPasswordModal } from '@/components/auth/ResetPasswordModal';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, UtensilsCrossed, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin, isClient } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+
+  // Check if this is a password reset callback
+  useEffect(() => {
+    if (searchParams.get('reset') === 'true') {
+      // Handle password reset flow if needed
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (
@@ -22,7 +33,11 @@ export default function Auth() {
     );
   }
 
+  // Role-based redirect
   if (user) {
+    if (isClient && !isAdmin) {
+      return <Navigate to="/client" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -70,7 +85,11 @@ export default function Auth() {
               </TabsList>
               
               <TabsContent value="login" className="mt-0">
-                <LoginForm isLoading={isLoading} setIsLoading={setIsLoading} />
+                <LoginForm 
+                  isLoading={isLoading} 
+                  setIsLoading={setIsLoading}
+                  onForgotPassword={() => setIsResetModalOpen(true)}
+                />
               </TabsContent>
               
               <TabsContent value="signup" className="mt-0">
@@ -80,13 +99,27 @@ export default function Auth() {
           </div>
         </div>
       </div>
+
+      <ResetPasswordModal 
+        isOpen={isResetModalOpen} 
+        onClose={() => setIsResetModalOpen(false)} 
+      />
     </div>
   );
 }
 
-function LoginForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoading: (v: boolean) => void }) {
+function LoginForm({ 
+  isLoading, 
+  setIsLoading, 
+  onForgotPassword 
+}: { 
+  isLoading: boolean; 
+  setIsLoading: (v: boolean) => void;
+  onForgotPassword: () => void;
+}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const { signIn } = useAuth();
   const { toast } = useToast();
@@ -150,13 +183,20 @@ function LoginForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoadi
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             id="password"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="pl-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
+            className="pl-10 pr-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </div>
       </div>
 
@@ -179,9 +219,7 @@ function LoginForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoadi
         <button
           type="button"
           className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
-          onClick={() => {
-            // TODO: Implement forgot password
-          }}
+          onClick={onForgotPassword}
         >
           Glemt password?
         </button>
@@ -210,6 +248,7 @@ function SignupForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoad
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { signUp } = useAuth();
   const { toast } = useToast();
 
@@ -307,13 +346,20 @@ function SignupForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoad
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             id="signupPassword"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="Mindst 6 tegn"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="pl-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
+            className="pl-10 pr-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </div>
         <p className="text-xs text-muted-foreground">Mindst 6 tegn</p>
       </div>
