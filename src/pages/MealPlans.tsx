@@ -34,18 +34,35 @@ export default function MealPlans() {
 
   const fetchMealPlans = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: plansData } = await supabase
       .from('meal_plans')
-      .select(`
-        *,
-        customer:customers(
-          profile:profiles!customers_user_id_fkey(full_name)
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error) {
-      setMealPlans(data || []);
+    if (plansData && plansData.length > 0) {
+      const customerIds = [...new Set(plansData.map(p => p.customer_id))];
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id, user_id')
+        .in('id', customerIds);
+
+      const userIds = customers?.map(c => c.user_id) || [];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const plansWithCustomers = plansData.map(plan => {
+        const customer = customers?.find(c => c.id === plan.customer_id);
+        const profile = profiles?.find(p => p.id === customer?.user_id);
+        return {
+          ...plan,
+          customer: customer ? { profile: profile || null } : null
+        };
+      });
+      setMealPlans(plansWithCustomers as MealPlanWithCustomer[]);
+    } else {
+      setMealPlans([]);
     }
     setLoading(false);
   };

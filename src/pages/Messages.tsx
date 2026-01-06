@@ -37,18 +37,27 @@ export default function Messages() {
 
   const fetchMessages = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: messagesData } = await supabase
       .from('messages')
-      .select(`
-        *,
-        from_profile:profiles!messages_from_user_id_fkey(full_name, email)
-      `)
+      .select('*')
       .eq('to_user_id', user?.id)
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (!error) {
-      setMessages(data || []);
+    if (messagesData && messagesData.length > 0) {
+      const fromUserIds = [...new Set(messagesData.map(m => m.from_user_id).filter(Boolean))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', fromUserIds);
+
+      const messagesWithProfiles = messagesData.map(message => ({
+        ...message,
+        from_profile: profiles?.find(p => p.id === message.from_user_id) || null
+      }));
+      setMessages(messagesWithProfiles as MessageWithProfile[]);
+    } else {
+      setMessages([]);
     }
     setLoading(false);
   };
