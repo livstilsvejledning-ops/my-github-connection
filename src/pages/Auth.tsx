@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UtensilsCrossed } from 'lucide-react';
+import { Loader2, UtensilsCrossed, Mail, Lock, User } from 'lucide-react';
 
 export default function Auth() {
   const { user, loading } = useAuth();
@@ -16,7 +16,7 @@ export default function Auth() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-muted/30 to-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -27,43 +27,59 @@ export default function Auth() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-secondary/20 blur-3xl" />
+    <div className="flex min-h-screen items-center justify-center p-4 bg-gradient-to-br from-background via-muted/50 to-background">
+      {/* Decorative blobs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -left-40 -top-40 h-96 w-96 rounded-full bg-primary/15 blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -right-40 h-96 w-96 rounded-full bg-secondary/15 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-accent/10 blur-3xl" />
       </div>
       
-      <Card className="relative z-10 w-full max-w-md rounded-2xl border-border shadow-soft">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl gradient-primary">
-            <UtensilsCrossed className="h-8 w-8 text-primary-foreground" />
+      {/* Card with gradient border */}
+      <div className="relative z-10 w-full max-w-md">
+        <div className="absolute -inset-0.5 rounded-3xl gradient-primary opacity-75 blur-sm" />
+        <div className="relative rounded-3xl bg-card border border-border/50 shadow-soft overflow-hidden">
+          {/* Header */}
+          <div className="pt-8 pb-4 px-8 text-center">
+            {/* Logo */}
+            <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl gradient-primary shadow-lg">
+              <UtensilsCrossed className="h-10 w-10 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">KostCRM</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Dit professionelle kostvejledning system
+            </p>
           </div>
-          <CardTitle className="text-2xl font-bold text-foreground">KostCRM</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Dit professionelle kostvejledning system
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted p-1">
-              <TabsTrigger value="login" className="rounded-lg data-[state=active]:bg-card">
-                Log ind
-              </TabsTrigger>
-              <TabsTrigger value="signup" className="rounded-lg data-[state=active]:bg-card">
-                Opret konto
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <LoginForm isLoading={isLoading} setIsLoading={setIsLoading} />
-            </TabsContent>
-            
-            <TabsContent value="signup">
-              <SignupForm isLoading={isLoading} setIsLoading={setIsLoading} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+
+          {/* Content */}
+          <div className="px-8 pb-8">
+            <Tabs defaultValue="login" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted p-1 mb-6">
+                <TabsTrigger 
+                  value="login" 
+                  className="rounded-lg font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                >
+                  Log ind
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup" 
+                  className="rounded-lg font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                >
+                  Opret konto
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="login" className="mt-0">
+                <LoginForm isLoading={isLoading} setIsLoading={setIsLoading} />
+              </TabsContent>
+              
+              <TabsContent value="signup" className="mt-0">
+                <SignupForm isLoading={isLoading} setIsLoading={setIsLoading} />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -71,11 +87,22 @@ export default function Auth() {
 function LoginForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoading: (v: boolean) => void }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const { signIn } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim() || !password) {
+      toast({
+        variant: "destructive",
+        title: "Manglende oplysninger",
+        description: "Udfyld venligst både email og adgangskode",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     const { error } = await signIn(email, password);
@@ -94,38 +121,86 @@ function LoginForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoadi
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Email */}
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="din@email.dk"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="rounded-xl"
-        />
+        <Label htmlFor="email" className="text-sm font-medium text-foreground">
+          Email
+        </Label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="email"
+            type="email"
+            placeholder="din@email.dk"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="pl-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
+          />
+        </div>
       </div>
+
+      {/* Password */}
       <div className="space-y-2">
-        <Label htmlFor="password">Adgangskode</Label>
-        <Input
-          id="password"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="rounded-xl"
-        />
+        <Label htmlFor="password" className="text-sm font-medium text-foreground">
+          Adgangskode
+        </Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="pl-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
+          />
+        </div>
       </div>
+
+      {/* Remember me & Forgot password */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="remember" 
+            checked={rememberMe}
+            onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+            className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+          />
+          <Label 
+            htmlFor="remember" 
+            className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+          >
+            Husk mig
+          </Label>
+        </div>
+        <button
+          type="button"
+          className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
+          onClick={() => {
+            // TODO: Implement forgot password
+          }}
+        >
+          Glemt password?
+        </button>
+      </div>
+
+      {/* Submit Button */}
       <Button 
         type="submit" 
-        className="w-full rounded-xl gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
+        className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold shadow-lg hover:shadow-hover hover:opacity-95 transition-all duration-300"
         disabled={isLoading}
       >
-        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Log ind
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Logger ind...
+          </>
+        ) : (
+          'Log ind'
+        )}
       </Button>
     </form>
   );
@@ -140,7 +215,15 @@ function SignupForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoad
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+
+    if (!fullName.trim() || !email.trim() || !password) {
+      toast({
+        variant: "destructive",
+        title: "Manglende oplysninger",
+        description: "Udfyld venligst alle felter",
+      });
+      return;
+    }
 
     if (password.length < 6) {
       toast({
@@ -148,9 +231,10 @@ function SignupForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoad
         title: "Adgangskode for kort",
         description: "Adgangskoden skal være mindst 6 tegn",
       });
-      setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
 
     const { error } = await signUp(email, password, fullName);
     
@@ -175,51 +259,87 @@ function SignupForm({ isLoading, setIsLoading }: { isLoading: boolean; setIsLoad
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Full Name */}
       <div className="space-y-2">
-        <Label htmlFor="fullName">Fulde navn</Label>
-        <Input
-          id="fullName"
-          type="text"
-          placeholder="Dit navn"
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          required
-          className="rounded-xl"
-        />
+        <Label htmlFor="fullName" className="text-sm font-medium text-foreground">
+          Fulde navn
+        </Label>
+        <div className="relative">
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="fullName"
+            type="text"
+            placeholder="Dit navn"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+            className="pl-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
+          />
+        </div>
       </div>
+
+      {/* Email */}
       <div className="space-y-2">
-        <Label htmlFor="signupEmail">Email</Label>
-        <Input
-          id="signupEmail"
-          type="email"
-          placeholder="din@email.dk"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="rounded-xl"
-        />
+        <Label htmlFor="signupEmail" className="text-sm font-medium text-foreground">
+          Email
+        </Label>
+        <div className="relative">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="signupEmail"
+            type="email"
+            placeholder="din@email.dk"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="pl-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
+          />
+        </div>
       </div>
+
+      {/* Password */}
       <div className="space-y-2">
-        <Label htmlFor="signupPassword">Adgangskode</Label>
-        <Input
-          id="signupPassword"
-          type="password"
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="rounded-xl"
-        />
+        <Label htmlFor="signupPassword" className="text-sm font-medium text-foreground">
+          Adgangskode
+        </Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="signupPassword"
+            type="password"
+            placeholder="Mindst 6 tegn"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="pl-10 rounded-xl bg-input border-border focus:border-primary focus:ring-primary/20 transition-all"
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">Mindst 6 tegn</p>
       </div>
+
+      {/* Submit Button */}
       <Button 
         type="submit" 
-        className="w-full rounded-xl gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
+        className="w-full h-12 rounded-xl gradient-primary text-primary-foreground font-semibold shadow-lg hover:shadow-hover hover:opacity-95 transition-all duration-300"
         disabled={isLoading}
       >
-        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Opret konto
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            Opretter konto...
+          </>
+        ) : (
+          'Opret konto'
+        )}
       </Button>
+
+      <p className="text-xs text-center text-muted-foreground">
+        Ved at oprette en konto accepterer du vores{' '}
+        <button type="button" className="text-primary hover:underline">
+          vilkår og betingelser
+        </button>
+      </p>
     </form>
   );
 }
