@@ -91,15 +91,7 @@ export default function Customers() {
     setLoading(true);
     const { data, error } = await supabase
       .from('customers')
-      .select(`
-        *,
-        profile:profiles!customers_user_id_fkey(
-          full_name,
-          email,
-          phone,
-          profile_image_url
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -108,8 +100,25 @@ export default function Customers() {
         title: 'Fejl ved hentning',
         description: error.message,
       });
+      setLoading(false);
+      return;
+    }
+
+    // Fetch profiles separately
+    if (data && data.length > 0) {
+      const userIds = data.map(c => c.user_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, phone, profile_image_url')
+        .in('id', userIds);
+
+      const customersWithProfiles = data.map(customer => ({
+        ...customer,
+        profile: profiles?.find(p => p.id === customer.user_id) || null
+      }));
+      setCustomers(customersWithProfiles as CustomerWithProfile[]);
     } else {
-      setCustomers(data || []);
+      setCustomers([]);
     }
     setLoading(false);
   };

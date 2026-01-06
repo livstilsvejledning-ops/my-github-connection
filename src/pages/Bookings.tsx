@@ -50,20 +50,37 @@ export default function Bookings() {
     const startDate = startOfWeek(new Date(), { weekStartsOn: 1 });
     const endDate = addDays(endOfWeek(new Date(), { weekStartsOn: 1 }), 7);
 
-    const { data, error } = await supabase
+    const { data: bookingsData } = await supabase
       .from('bookings')
-      .select(`
-        *,
-        customer:customers(
-          profile:profiles!customers_user_id_fkey(full_name)
-        )
-      `)
+      .select('*')
       .gte('scheduled_at', startDate.toISOString())
       .lte('scheduled_at', endDate.toISOString())
       .order('scheduled_at', { ascending: true });
 
-    if (!error) {
-      setBookings(data || []);
+    if (bookingsData && bookingsData.length > 0) {
+      const customerIds = [...new Set(bookingsData.map(b => b.customer_id).filter(Boolean))];
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id, user_id')
+        .in('id', customerIds);
+
+      const userIds = customers?.map(c => c.user_id) || [];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const bookingsWithCustomers = bookingsData.map(booking => {
+        const customer = customers?.find(c => c.id === booking.customer_id);
+        const profile = profiles?.find(p => p.id === customer?.user_id);
+        return {
+          ...booking,
+          customer: customer ? { profile: profile || null } : null
+        };
+      });
+      setBookings(bookingsWithCustomers as BookingWithCustomer[]);
+    } else {
+      setBookings([]);
     }
     setLoading(false);
   };

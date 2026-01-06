@@ -51,19 +51,36 @@ export default function CheckIns() {
 
   const fetchCheckIns = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: checkInsData } = await supabase
       .from('check_ins')
-      .select(`
-        *,
-        customer:customers(
-          profile:profiles!customers_user_id_fkey(full_name)
-        )
-      `)
+      .select('*')
       .order('check_in_date', { ascending: false })
       .limit(50);
 
-    if (!error) {
-      setCheckIns(data || []);
+    if (checkInsData && checkInsData.length > 0) {
+      const customerIds = [...new Set(checkInsData.map(c => c.customer_id).filter(Boolean))];
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id, user_id')
+        .in('id', customerIds);
+
+      const userIds = customers?.map(c => c.user_id) || [];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      const checkInsWithCustomers = checkInsData.map(checkIn => {
+        const customer = customers?.find(c => c.id === checkIn.customer_id);
+        const profile = profiles?.find(p => p.id === customer?.user_id);
+        return {
+          ...checkIn,
+          customer: customer ? { profile: profile || null } : null
+        };
+      });
+      setCheckIns(checkInsWithCustomers as CheckInWithCustomer[]);
+    } else {
+      setCheckIns([]);
     }
     setLoading(false);
   };

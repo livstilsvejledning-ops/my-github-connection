@@ -40,20 +40,27 @@ export default function Habits() {
 
   const fetchHabits = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data: habitsData } = await supabase
       .from('habits')
-      .select(`
-        *,
-        customer:customers(
-          profile:profiles!customers_user_id_fkey(full_name)
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
+    if (habitsData && habitsData.length > 0) {
+      const customerIds = [...new Set(habitsData.map(h => h.customer_id).filter(Boolean))];
+      const { data: customers } = await supabase
+        .from('customers')
+        .select('id, user_id')
+        .in('id', customerIds);
+
+      const userIds = customers?.map(c => c.user_id) || [];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
       // For each habit, get this week's log count
       const habitsWithLogs = await Promise.all(
-        data.map(async (habit) => {
+        habitsData.map(async (habit) => {
           const startOfWeek = new Date();
           startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay() + 1);
           
@@ -64,10 +71,19 @@ export default function Habits() {
             .eq('completed', true)
             .gte('logged_date', startOfWeek.toISOString().split('T')[0]);
 
-          return { ...habit, logs_count: count || 0 };
+          const customer = customers?.find(c => c.id === habit.customer_id);
+          const profile = profiles?.find(p => p.id === customer?.user_id);
+
+          return { 
+            ...habit, 
+            logs_count: count || 0,
+            customer: customer ? { profile: profile || null } : null
+          };
         })
       );
-      setHabits(habitsWithLogs);
+      setHabits(habitsWithLogs as HabitWithLogs[]);
+    } else {
+      setHabits([]);
     }
     setLoading(false);
   };
